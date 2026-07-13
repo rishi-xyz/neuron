@@ -75,7 +75,7 @@ export async function handleAppMentioned({
     const channelId = event.channel;
     const text = event.text || "";
     const threadTs = event.thread_ts || event.ts;
-    const teamId = context.team_id;
+    const teamId = event.team || context.team_id;
 
     const cleanedText = text.replace(/<@[A-Z0-9]+>/g, "").trim();
 
