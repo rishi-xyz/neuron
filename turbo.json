@@ -18,7 +18,8 @@
         "GITHUB_PRIVATE_KEY",
         "DATABASE_URL",
         "REDIS_URL",
-        "LLM_API_KEY"
+        "LLM_API_KEY",
+        "PORT"
       ]
     },
     "lint": {
@@ -35,7 +36,8 @@
         "GITHUB_PRIVATE_KEY",
         "DATABASE_URL",
         "REDIS_URL",
-        "LLM_API_KEY"
+        "LLM_API_KEY",
+        "PORT"
       ]
     },
     "check-types": {
@@ -52,7 +54,8 @@
         "GITHUB_PRIVATE_KEY",
         "DATABASE_URL",
         "REDIS_URL",
-        "LLM_API_KEY"
+        "LLM_API_KEY",
+        "PORT"
       ]
     },
     "dev": {

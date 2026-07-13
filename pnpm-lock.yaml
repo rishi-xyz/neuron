@@ -65,6 +65,15 @@ importers:
 
   apps/slack-agent:
     dependencies:
+      "@neuron/database":
+        specifier: workspace:*
+        version: link:../../packages/database
+      "@neuron/github":
+        specifier: workspace:*
+        version: link:../../packages/github
+      "@neuron/memory":
+        specifier: workspace:*
+        version: link:../../packages/memory
       "@repo/shared":
         specifier: workspace:*
         version: link:../../packages/shared

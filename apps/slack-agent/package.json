@@ -11,6 +11,9 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@neuron/database": "workspace:*",
+    "@neuron/github": "workspace:*",
+    "@neuron/memory": "workspace:*",
     "@repo/shared": "workspace:*",
     "@slack/bolt": "^4.4.0",
     "@slack/types": "^2.22.0",

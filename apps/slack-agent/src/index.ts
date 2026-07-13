@@ -1,9 +1,18 @@
 import { App, LogLevel } from "@slack/bolt";
+import http from "node:http";
 
 import { handleAppHomeOpened } from "./listeners/home.js";
 import { handleAppMentioned } from "./listeners/app-mention.js";
 import { handleSlashNeuron } from "./listeners/slash-neuron.js";
 import { handleMessage } from "./listeners/message-im.js";
+import { handleGitHubAuthRedirect } from "./routes/github-oauth.js";
+import { handleGitHubWebhook } from "./webhooks/github.js";
+
+const isDev = process.env.NODE_ENV !== "production";
+
+if (isDev) {
+  console.log("[app] Starting Neuron Slack Agent (development mode)");
+}
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -22,7 +31,59 @@ app.action("feedback", async ({ ack }) => {
   await ack();
 });
 
+// HTTP server for OAuth callbacks and webhooks
+const httpPort = parseInt(process.env.PORT ?? "3000", 10);
+
+const httpServer = http.createServer(async (req, res) => {
+  const url = new URL(
+    req.url ?? "/",
+    `http://${req.headers.host ?? "localhost"}`,
+  );
+
+  if (isDev) {
+    console.log(`[http] ${req.method} ${url.pathname}`);
+  }
+
+  // GitHub OAuth callback
+  if (url.pathname === "/auth/github/callback" && req.method === "GET") {
+    await handleGitHubAuthRedirect(req, res);
+    return;
+  }
+
+  // GitHub webhook
+  if (url.pathname === "/webhooks/github" && req.method === "POST") {
+    await handleGitHubWebhook(req, res);
+    return;
+  }
+
+  // Health check
+  if (url.pathname === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok", service: "neuron-slack-agent" }));
+    return;
+  }
+
+  // 404
+  res.writeHead(404, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "Not found" }));
+});
+
 (async () => {
+  // Start Bolt (Slack events via Socket Mode)
   await app.start();
-  app.logger.info(":brain: Neuron Slack Agent is running!");
+  app.logger.info(":brain: Neuron Slack Agent is running (Socket Mode)!");
+
+  // Start HTTP server (OAuth callbacks + webhooks)
+  httpServer.listen(httpPort, () => {
+    if (isDev) {
+      console.log(`[http] HTTP server listening on port ${httpPort}`);
+      console.log(
+        `[http] OAuth callback: http://localhost:${httpPort}/auth/github/callback`,
+      );
+      console.log(
+        `[http] Webhook endpoint: http://localhost:${httpPort}/webhooks/github`,
+      );
+      console.log(`[http] Health check: http://localhost:${httpPort}/health`);
+    }
+  });
 })();
