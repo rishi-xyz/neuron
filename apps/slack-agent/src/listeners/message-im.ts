@@ -3,7 +3,7 @@ import type { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
 import { prisma } from "@neuron/database";
 import { executeTool } from "../tools/github-tools.js";
 import { AGENT_GREETING, LOADING_STATUS } from "../config/prompts.js";
-import { generateResponse, getKnowledgeContext } from "../ai/gemini.js";
+import { generateResponse, getKnowledgeContext } from "../ai/llm.js";
 
 type Handler = SlackEventMiddlewareArgs<"message"> & AllMiddlewareArgs;
 

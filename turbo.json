@@ -19,6 +19,8 @@
         "DATABASE_URL",
         "REDIS_URL",
         "LLM_API_KEY",
+        "LLM_BASE_URL",
+        "LLM_MODEL",
         "PORT"
       ]
     },
@@ -37,6 +39,8 @@
         "DATABASE_URL",
         "REDIS_URL",
         "LLM_API_KEY",
+        "LLM_BASE_URL",
+        "LLM_MODEL",
         "PORT"
       ]
     },
@@ -55,6 +59,8 @@
         "DATABASE_URL",
         "REDIS_URL",
         "LLM_API_KEY",
+        "LLM_BASE_URL",
+        "LLM_MODEL",
         "PORT"
       ]
     },

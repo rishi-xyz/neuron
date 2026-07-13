@@ -2,7 +2,7 @@ import type { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
 
 import { prisma } from "@neuron/database";
 import { executeTool } from "../tools/github-tools.js";
-import { generateResponse, getKnowledgeContext } from "../ai/gemini.js";
+import { generateResponse, getKnowledgeContext } from "../ai/llm.js";
 
 type Handler = SlackEventMiddlewareArgs<"app_mention"> & AllMiddlewareArgs;
 

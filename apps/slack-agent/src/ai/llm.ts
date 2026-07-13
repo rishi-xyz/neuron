@@ -1,9 +1,29 @@
+import OpenAI from "openai";
 import { prisma } from "@neuron/database";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+let client: OpenAI | null = null;
+
+function getClient(): OpenAI | null {
+  const apiKey = process.env.LLM_API_KEY;
+  if (!apiKey) return null;
+
+  if (!client) {
+    client = new OpenAI({
+      apiKey,
+      baseURL: process.env.LLM_BASE_URL || "https://api.openai.com/v1",
+    });
+
+    if (isDev) {
+      console.log(
+        `[ai] OpenAI client initialized (base: ${process.env.LLM_BASE_URL || "https://api.openai.com/v1"}, model: ${process.env.LLM_MODEL || "gpt-4o-mini"})`,
+      );
+    }
+  }
+
+  return client;
+}
 
 const SYSTEM_PROMPT = `You are Neuron, an engineering memory platform for Slack teams.
 You help engineers understand their codebase, pull requests, issues, and organizational knowledge.
@@ -21,8 +41,8 @@ export interface GenerateOptions {
 export async function generateResponse(
   options: GenerateOptions,
 ): Promise<string> {
-  const apiKey = process.env.LLM_API_KEY;
-  if (!apiKey) {
+  const openai = getClient();
+  if (!openai) {
     if (isDev) {
       console.log("[ai] No LLM_API_KEY set, using stub response");
     }
@@ -34,59 +54,40 @@ export async function generateResponse(
       ? `\n\nKnowledge Graph Context:\n${options.knowledgeContext}`
       : "";
 
-    const userContent = options.userMessage + contextBlock;
+    const model = process.env.LLM_MODEL || "gpt-4o-mini";
 
     if (isDev) {
       console.log(
-        `[ai] Calling Gemini for query: "${options.userMessage.substring(0, 80)}..."`,
+        `[ai] Calling ${model} for query: "${options.userMessage.substring(0, 80)}..."`,
       );
     }
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: {
-          parts: [{ text: SYSTEM_PROMPT }],
-        },
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: userContent }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 1024,
-        },
-      }),
+    const response = await openai.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: options.userMessage + contextBlock },
+      ],
+      temperature: 0.3,
+      max_tokens: 1024,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[ai] Gemini API error: ${response.status} - ${errorText}`);
-      return getStubResponse(options.userMessage);
-    }
-
-    const data = (await response.json()) as {
-      candidates?: Array<{
-        content?: { parts?: Array<{ text?: string }> };
-      }>;
-    };
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = response.choices[0]?.message?.content;
     if (!text) {
-      console.error("[ai] No text in Gemini response:", JSON.stringify(data));
+      console.error(
+        "[ai] No content in LLM response:",
+        JSON.stringify(response),
+      );
       return getStubResponse(options.userMessage);
     }
 
     if (isDev) {
-      console.log(`[ai] Gemini response: ${text.substring(0, 100)}...`);
+      console.log(`[ai] LLM response: ${text.substring(0, 100)}...`);
     }
 
     return text;
   } catch (e) {
-    console.error("[ai] Gemini call failed:", e);
+    console.error("[ai] LLM call failed:", e);
     return getStubResponse(options.userMessage);
   }
 }
@@ -104,7 +105,6 @@ export async function getKnowledgeContext(
       return "No entities in the knowledge graph yet. Run /neuron sync first.";
     }
 
-    // Search for relevant entities based on query keywords
     const keywords = query
       .toLowerCase()
       .split(/\s+/)
@@ -213,6 +213,6 @@ function getStubResponse(query: string): string {
     "• Codebase questions (after syncing with `/neuron sync`)\n" +
     "• Knowledge graph stats\n\n" +
     "To get started: `/neuron connect github` → `/neuron sync`\n\n" +
-    "_Tip: I need `LLM_API_KEY` set in `.env` for AI-powered responses._"
+    "_Tip: Set `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` in `.env` for AI-powered responses._"
   );
 }
