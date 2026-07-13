@@ -75,6 +75,7 @@ export async function handleAppMentioned({
     const channelId = event.channel;
     const text = event.text || "";
     const threadTs = event.thread_ts || event.ts;
+    const teamId = context.team_id;
 
     const cleanedText = text.replace(/<@[A-Z0-9]+>/g, "").trim();
 
@@ -87,44 +88,53 @@ export async function handleAppMentioned({
       return;
     }
 
-    // Try tool-based routing first
-    const intent = detectIntent(cleanedText);
-    if (intent) {
-      let workspace = await prisma.workspace.findUnique({
-        where: { slackWorkspaceId: context.team_id },
-      });
-
-      if (!workspace) {
-        workspace = await prisma.workspace.create({
-          data: {
-            slackWorkspaceId: context.team_id,
-            name: `Workspace ${context.team_id}`,
-          },
+    if (teamId) {
+      const intent = detectIntent(cleanedText);
+      if (intent) {
+        let workspace = await prisma.workspace.findUnique({
+          where: { slackWorkspaceId: teamId },
         });
-      }
 
-      const result = await executeTool(intent.tool, intent.params, {
-        workspaceId: workspace.id,
-        channel: channelId,
-        threadTs,
-        client,
-      });
+        if (!workspace) {
+          workspace = await prisma.workspace.create({
+            data: {
+              slackWorkspaceId: teamId,
+              name: `Workspace ${teamId}`,
+            },
+          });
+        }
 
-      if (result.success) {
-        const data = result.data as { text: string };
-        await client.chat.postMessage({
+        const result = await executeTool(intent.tool, intent.params, {
+          workspaceId: workspace.id,
           channel: channelId,
-          thread_ts: threadTs,
-          text: data.text,
+          threadTs,
+          client,
         });
-        return;
+
+        if (result.success) {
+          const data = result.data as { text: string };
+          await client.chat.postMessage({
+            channel: channelId,
+            thread_ts: threadTs,
+            text: data.text,
+          });
+          return;
+        }
       }
     }
 
-    await streamStubResponse(client, channelId, threadTs, cleanedText, {
-      recipientTeamId: context.team_id,
-      recipientUserId: event.user,
-    });
+    if (teamId) {
+      await streamStubResponse(client, channelId, threadTs, cleanedText, {
+        recipientTeamId: teamId,
+        recipientUserId: event.user,
+      });
+    } else {
+      await client.chat.postMessage({
+        channel: channelId,
+        thread_ts: threadTs,
+        text: "Hey! I'm Neuron. Use `/neuron connect github` to get started, then ask me anything about your repos, PRs, or issues.",
+      });
+    }
   } catch (e) {
     logger.error(`Failed to handle app_mention: ${e}`);
     await client.chat.postMessage({

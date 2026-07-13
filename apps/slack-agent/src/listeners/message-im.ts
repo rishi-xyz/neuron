@@ -82,17 +82,18 @@ export async function handleMessage({
     const threadTs = event.thread_ts || event.ts;
 
     // Try tool-based routing first
+    const teamId = event.team;
     const intent = detectIntent(text);
-    if (intent) {
+    if (intent && teamId) {
       let workspace = await prisma.workspace.findUnique({
-        where: { slackWorkspaceId: event.team ?? "" },
+        where: { slackWorkspaceId: teamId },
       });
 
       if (!workspace) {
         workspace = await prisma.workspace.create({
           data: {
-            slackWorkspaceId: event.team ?? "",
-            name: `Workspace ${event.team ?? ""}`,
+            slackWorkspaceId: teamId,
+            name: `Workspace ${teamId}`,
           },
         });
       }
