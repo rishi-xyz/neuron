@@ -226,6 +226,31 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  packages/memory:
+    dependencies:
+      "@neuron/database":
+        specifier: workspace:*
+        version: link:../database
+      "@neuron/github":
+        specifier: workspace:*
+        version: link:../github
+    devDependencies:
+      "@repo/eslint-config":
+        specifier: workspace:*
+        version: link:../eslint-config
+      "@repo/typescript-config":
+        specifier: workspace:*
+        version: link:../typescript-config
+      "@types/node":
+        specifier: ^22.15.3
+        version: 22.15.3
+      eslint:
+        specifier: ^9.39.1
+        version: 9.39.1(jiti@2.7.0)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
   packages/shared:
     dependencies:
       zod:
