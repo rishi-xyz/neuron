@@ -12,15 +12,15 @@ const envSchema = z.object({
 
   GITHUB_CLIENT_ID: z.string().min(1),
   GITHUB_CLIENT_SECRET: z.string().min(1),
-
-  GOOGLE_CLIENT_ID: z.string().min(1),
-  GOOGLE_CLIENT_SECRET: z.string().min(1),
+  GITHUB_WEBHOOK_SECRET: z.string().default(""),
+  GITHUB_REDIRECT_URL: z
+    .string()
+    .default("http://localhost:3000/auth/github/callback"),
 
   DATABASE_URL: z.string().min(1),
-  REDIS_URL: z.string().min(1),
+  REDIS_URL: z.string().default("redis://localhost:6379"),
 
-  COGNEE_API_KEY: z.string().min(1),
-  LLM_API_KEY: z.string().min(1),
+  LLM_API_KEY: z.string().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

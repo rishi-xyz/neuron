@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id                String   @id @default(cuid())
+  slackWorkspaceId  String   @unique
+  name              String
+  installedAt       DateTime @default(now())
+  settings          Json     @default("{}")
+
+  githubAccessToken  String?
+  githubTokenType    String?
+  connectedRepos     String[]
+
+  entities   Entity[]
+  auditLogs  AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Entity {
+  id          String @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  source       String
+  sourceId     String
+  repoFullName String
+  entityType   String
+
+  title  String?
+  body   String?
+  state  String?
+  url    String?
+  author String?
+
+  metadata Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sourceEdges  Edge[] @relation("EdgeSource")
+  targetEdges  Edge[] @relation("EdgeTarget")
+
+  @@unique([workspaceId, source, sourceId])
+  @@index([workspaceId, entityType])
+  @@index([workspaceId, repoFullName])
+}
+
+model Edge {
+  id          String @id @default(cuid())
+  workspaceId String
+
+  sourceId String
+  source   Entity @relation("EdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
+
+  targetId String
+  target   Entity @relation("EdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  relationType String
+  metadata     Json?
+  confidence   Float @default(1.0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([sourceId, targetId, relationType])
+  @@index([workspaceId])
+}
+
+model AuditLog {
+  id          String @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  action    String
+  userId    String?
+  details   Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+}
