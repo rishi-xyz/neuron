@@ -27,21 +27,21 @@ Every milestone should end with:
 
 # Progress
 
-| Milestone | Status |
-|------------|--------|
-| M0 - Planning | ✅ |
-| M1 - Project Setup | ⬜ |
-| M2 - Slack Agent | ⬜ |
-| M3 - Authentication | ⬜ |
-| M4 - GitHub Integration | ⬜ |
-| M5 - Google Docs Integration | ⬜ |
-| M6 - Cognee Memory Graph | ⬜ |
-| M7 - AI Planner | ⬜ |
-| M8 - Slack RTS | ⬜ |
-| M9 - Agent Actions | ⬜ |
-| M10 - Slack UX | ⬜ |
-| M11 - Production Readiness | ⬜ |
-| M12 - Demo & Submission | ⬜ |
+| Milestone                    | Status |
+| ---------------------------- | ------ |
+| M0 - Planning                | ✅     |
+| M1 - Project Setup           | ✅     |
+| M2 - Slack Agent             | ⬜     |
+| M3 - Authentication          | ⬜     |
+| M4 - GitHub Integration      | ⬜     |
+| M5 - Google Docs Integration | ⬜     |
+| M6 - Cognee Memory Graph     | ⬜     |
+| M7 - AI Planner              | ⬜     |
+| M8 - Slack RTS               | ⬜     |
+| M9 - Agent Actions           | ⬜     |
+| M10 - Slack UX               | ⬜     |
+| M11 - Production Readiness   | ⬜     |
+| M12 - Demo & Submission      | ⬜     |
 
 ---
 
