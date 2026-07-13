@@ -2,12 +2,8 @@ import type { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
 
 import { prisma } from "@neuron/database";
 import { executeTool } from "../tools/github-tools.js";
-import {
-  AGENT_GREETING,
-  LOADING_STATUS,
-  STUB_RESPONSES,
-} from "../config/prompts.js";
-import { buildFeedbackBlocks } from "../streaming/responder.js";
+import { AGENT_GREETING, LOADING_STATUS } from "../config/prompts.js";
+import { generateResponse, getKnowledgeContext } from "../ai/gemini.js";
 
 type Handler = SlackEventMiddlewareArgs<"message"> & AllMiddlewareArgs;
 
@@ -80,24 +76,44 @@ export async function handleMessage({
     const channelId = event.channel;
     const text = "text" in event ? (event.text as string) || "" : "";
     const threadTs = event.thread_ts || event.ts;
+    const teamId = event.team;
+
+    const cleanedText = text.replace(/<@[A-Z0-9]+>/g, "").trim();
+
+    if (!cleanedText) {
+      await client.chat.postMessage({
+        channel: channelId,
+        thread_ts: threadTs,
+        text: AGENT_GREETING,
+      });
+      return;
+    }
+
+    if (!teamId) {
+      await client.chat.postMessage({
+        channel: channelId,
+        thread_ts: threadTs,
+        text: AGENT_GREETING,
+      });
+      return;
+    }
+
+    let workspace = await prisma.workspace.findUnique({
+      where: { slackWorkspaceId: teamId },
+    });
+
+    if (!workspace) {
+      workspace = await prisma.workspace.create({
+        data: {
+          slackWorkspaceId: teamId,
+          name: `Workspace ${teamId}`,
+        },
+      });
+    }
 
     // Try tool-based routing first
-    const teamId = event.team;
-    const intent = detectIntent(text);
-    if (intent && teamId) {
-      let workspace = await prisma.workspace.findUnique({
-        where: { slackWorkspaceId: teamId },
-      });
-
-      if (!workspace) {
-        workspace = await prisma.workspace.create({
-          data: {
-            slackWorkspaceId: teamId,
-            name: `Workspace ${teamId}`,
-          },
-        });
-      }
-
+    const intent = detectIntent(cleanedText);
+    if (intent) {
       const result = await executeTool(intent.tool, intent.params, {
         workspaceId: workspace.id,
         channel: channelId,
@@ -116,103 +132,28 @@ export async function handleMessage({
       }
     }
 
+    // Fall through to LLM for freeform queries
     await client.assistant.threads.setStatus({
       channel_id: channelId,
       thread_ts: threadTs,
       status: LOADING_STATUS,
     });
 
-    const stream = await client.chat.startStream({
-      channel: channelId,
-      thread_ts: threadTs,
-      task_display_mode: "plan",
-    });
+    const knowledgeContext = await getKnowledgeContext(
+      workspace.id,
+      cleanedText,
+    );
 
-    const messageTs = stream.ts;
-    if (!messageTs) {
-      throw new Error("Failed to start stream: no message_ts returned");
-    }
-
-    await client.chat.appendStream({
-      channel: channelId,
-      ts: messageTs,
-      chunks: [
-        {
-          type: "task_update",
-          id: "search",
-          title: "Searching knowledge graph",
-          status: "in_progress",
-        },
-      ],
-    });
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    await client.chat.appendStream({
-      channel: channelId,
-      ts: messageTs,
-      chunks: [
-        {
-          type: "task_update",
-          id: "search",
-          title: "Searching knowledge graph",
-          status: "complete",
-        },
-        {
-          type: "task_update",
-          id: "compose",
-          title: "Composing response",
-          status: "in_progress",
-        },
-      ],
-    });
-
-    let responseText: string;
-    const lower = text.toLowerCase();
-
-    if (lower.includes("hello") || lower.includes("hi")) {
-      responseText = AGENT_GREETING;
-    } else if (lower.includes("repos") || lower.includes("repositories")) {
-      responseText =
-        "Use `/neuron repos` or ask me to list your repositories after connecting GitHub with `/neuron connect github`.";
-    } else if (lower.includes("pr") || lower.includes("pull request")) {
-      responseText =
-        "I can help with pull requests! Try something like:\n• `Summarize PR #42`\n• `What's PR #10 about?`\n\nMake sure GitHub is connected first with `/neuron connect github`.";
-    } else if (lower.includes("issue") || lower.includes("bug")) {
-      responseText =
-        "I can help with issues! Try something like:\n• `What is issue #82 about?`\n• `Search issues for authentication`\n\nMake sure GitHub is connected first with `/neuron connect github`.";
-    } else {
-      responseText = STUB_RESPONSES.default ?? "How can I help you?";
-    }
-
-    await client.chat.appendStream({
-      channel: channelId,
-      ts: messageTs,
-      chunks: [
-        {
-          type: "markdown_text",
-          text: responseText,
-        },
-      ],
-    });
-
-    const feedbackBlocks = buildFeedbackBlocks();
-    await client.chat.stopStream({
-      channel: channelId,
-      ts: messageTs,
-      chunks: [
-        {
-          type: "markdown_text",
-          text: "_Neuron is running in stub mode. Full AI capabilities coming soon._",
-        },
-      ],
+    const responseText = await generateResponse({
+      workspaceId: workspace.id,
+      userMessage: cleanedText,
+      knowledgeContext,
     });
 
     await client.chat.postMessage({
       channel: channelId,
       thread_ts: threadTs,
-      blocks: feedbackBlocks,
-      text: "",
+      text: responseText,
     });
 
     await client.assistant.threads.setStatus({

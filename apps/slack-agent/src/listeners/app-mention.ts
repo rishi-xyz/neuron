@@ -2,7 +2,7 @@ import type { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
 
 import { prisma } from "@neuron/database";
 import { executeTool } from "../tools/github-tools.js";
-import { streamStubResponse } from "../streaming/responder.js";
+import { generateResponse, getKnowledgeContext } from "../ai/gemini.js";
 
 type Handler = SlackEventMiddlewareArgs<"app_mention"> & AllMiddlewareArgs;
 
@@ -88,53 +88,66 @@ export async function handleAppMentioned({
       return;
     }
 
-    if (teamId) {
-      const intent = detectIntent(cleanedText);
-      if (intent) {
-        let workspace = await prisma.workspace.findUnique({
-          where: { slackWorkspaceId: teamId },
-        });
-
-        if (!workspace) {
-          workspace = await prisma.workspace.create({
-            data: {
-              slackWorkspaceId: teamId,
-              name: `Workspace ${teamId}`,
-            },
-          });
-        }
-
-        const result = await executeTool(intent.tool, intent.params, {
-          workspaceId: workspace.id,
-          channel: channelId,
-          threadTs,
-          client,
-        });
-
-        if (result.success) {
-          const data = result.data as { text: string };
-          await client.chat.postMessage({
-            channel: channelId,
-            thread_ts: threadTs,
-            text: data.text,
-          });
-          return;
-        }
-      }
-    }
-
-    if (teamId) {
-      await streamStubResponse(client, channelId, threadTs, cleanedText, {
-        recipientTeamId: teamId,
-        recipientUserId: event.user,
-      });
-    } else {
+    if (!teamId) {
       await client.chat.postMessage({
         channel: channelId,
         thread_ts: threadTs,
         text: "Hey! I'm Neuron. Use `/neuron connect github` to get started, then ask me anything about your repos, PRs, or issues.",
       });
+      return;
     }
+
+    let workspace = await prisma.workspace.findUnique({
+      where: { slackWorkspaceId: teamId },
+    });
+
+    if (!workspace) {
+      workspace = await prisma.workspace.create({
+        data: {
+          slackWorkspaceId: teamId,
+          name: `Workspace ${teamId}`,
+        },
+      });
+    }
+
+    // Try tool-based routing first
+    const intent = detectIntent(cleanedText);
+    if (intent) {
+      const result = await executeTool(intent.tool, intent.params, {
+        workspaceId: workspace.id,
+        channel: channelId,
+        threadTs,
+        client,
+      });
+
+      if (result.success) {
+        const data = result.data as { text: string };
+        await client.chat.postMessage({
+          channel: channelId,
+          thread_ts: threadTs,
+          text: data.text,
+        });
+        return;
+      }
+    }
+
+    // Fall through to LLM for freeform queries
+    const knowledgeContext = await getKnowledgeContext(
+      workspace.id,
+      cleanedText,
+    );
+
+    const response = await generateResponse({
+      workspaceId: workspace.id,
+      userMessage: cleanedText,
+      knowledgeContext,
+    });
+
+    await client.chat.postMessage({
+      channel: channelId,
+      thread_ts: threadTs,
+      text: response,
+    });
   } catch (e) {
     logger.error(`Failed to handle app_mention: ${e}`);
     await client.chat.postMessage({
