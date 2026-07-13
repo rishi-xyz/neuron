@@ -1,3 +1,10 @@
+import path from "node:path";
+import { config } from "dotenv";
+
+// Load .env from repo root (slack run / tsx may run from apps/slack-agent/)
+config({ path: path.resolve(process.cwd(), "../../.env") });
+config(); // also try CWD for flexibility
+
 import { App, LogLevel } from "@slack/bolt";
 import http from "node:http";
 
