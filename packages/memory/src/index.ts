@@ -19,4 +19,13 @@ export {
   getEntitiesByRepo,
   getEdgesForEntity,
   getWorkspaceStats,
+  inferEntityTypeFromQuery,
+  resolveRepoMentions,
+  buildTypedKnowledgeContext,
 } from "./search.js";
+
+export {
+  upsertConversationReference,
+  listConversationReferences,
+} from "./references.js";
+export type { ConversationRefInput } from "./references.js";

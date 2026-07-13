@@ -1,5 +1,6 @@
 import OpenAI from "openai";
-import { prisma } from "@neuron/database";
+import { buildTypedKnowledgeContext } from "@neuron/memory";
+import { searchWorkspace, isCogneeConfigured } from "@neuron/cognee";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -27,7 +28,8 @@ function getClient(): OpenAI | null {
 
 const SYSTEM_PROMPT = `You are Neuron, an engineering memory platform for Slack teams.
 You help engineers understand their codebase, pull requests, issues, and organizational knowledge.
-You have access to a knowledge graph built from GitHub repositories, PRs, issues, commits, and releases.
+You have access to a knowledge graph (Postgres + Cognee) built from GitHub repositories, PRs, issues, commits, and Slack-derived decisions.
+When Knowledge Graph Context includes Issue/PR entities for a repo, list them — do not claim they are missing.
 Be concise, helpful, and technical. Use markdown formatting when appropriate.
 If you don't have enough information to answer accurately, say so rather than guessing.
 Keep responses under 500 words unless the user asks for detail.`;
@@ -97,87 +99,23 @@ export async function getKnowledgeContext(
   query: string,
 ): Promise<string> {
   try {
-    const entityCount = await prisma.entity.count({
-      where: { workspaceId },
-    });
+    const typed = await buildTypedKnowledgeContext(workspaceId, query);
 
-    if (entityCount === 0) {
-      return "No entities in the knowledge graph yet. Run /neuron sync first.";
+    let cogneeBlock = "";
+    if (isCogneeConfigured()) {
+      try {
+        const semantic = await searchWorkspace(workspaceId, query);
+        if (semantic.trim()) {
+          cogneeBlock = `\n\nCognee semantic graph:\n${semantic}`;
+        }
+      } catch (e) {
+        if (isDev) {
+          console.error("[ai] Cognee search failed:", e);
+        }
+      }
     }
 
-    const keywords = query
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((w) => w.length > 2);
-
-    const relevantEntities = await prisma.entity.findMany({
-      where: {
-        workspaceId,
-        OR: keywords.map((kw) => ({
-          OR: [
-            { title: { contains: kw, mode: "insensitive" } },
-            { body: { contains: kw, mode: "insensitive" } },
-            { repoFullName: { contains: kw, mode: "insensitive" } },
-          ],
-        })),
-      },
-      take: 15,
-      orderBy: { updatedAt: "desc" },
-      select: {
-        source: true,
-        sourceId: true,
-        repoFullName: true,
-        entityType: true,
-        title: true,
-        state: true,
-        url: true,
-      },
-    });
-
-    const repoStats = await prisma.entity.groupBy({
-      by: ["repoFullName"],
-      where: { workspaceId },
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 10,
-    });
-
-    const typeStats = await prisma.entity.groupBy({
-      by: ["entityType"],
-      where: { workspaceId },
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-    });
-
-    const edgeCount = await prisma.edge.count({
-      where: { workspaceId },
-    });
-
-    const repoList = repoStats
-      .map((r) => `${r.repoFullName} (${r._count.id} entities)`)
-      .join(", ");
-
-    const typeList = typeStats
-      .map((t) => `${t.entityType}: ${t._count.id}`)
-      .join(", ");
-
-    const entityDetails = relevantEntities
-      .map(
-        (e) =>
-          `- [${e.entityType}] ${e.repoFullName}: ${e.title ?? "untitled"} (${e.state ?? "N/A"})`,
-      )
-      .join("\n");
-
-    return [
-      `Workspace has ${entityCount} entities and ${edgeCount} edges.`,
-      `Top repos: ${repoList}.`,
-      `Entity types: ${typeList}.`,
-      relevantEntities.length > 0
-        ? `\nRelevant entities for this query:\n${entityDetails}`
-        : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
+    return typed + cogneeBlock;
   } catch (e) {
     if (isDev) {
       console.error("[ai] Failed to get knowledge context:", e);

@@ -1,5 +1,5 @@
 {
-  "name": "@neuron/memory",
+  "name": "@neuron/cognee",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -13,11 +13,7 @@
     "check-types": "tsc --noEmit",
     "build": "tsc"
   },
-  "dependencies": {
-    "@neuron/cognee": "workspace:*",
-    "@neuron/database": "workspace:*",
-    "@neuron/github": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",

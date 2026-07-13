@@ -7,6 +7,7 @@ import {
   listCommits,
   listReleases,
 } from "@neuron/github";
+import { ingestEntities } from "@neuron/cognee";
 import {
   repoToEntity,
   prToEntity,
@@ -56,14 +57,26 @@ export async function syncWorkspaceRepos(workspaceId: string): Promise<{
     await upsertEntity(workspaceId, entity);
   }
 
-  // 2. For each connected repo, fetch PRs, issues, commits, releases
-  const connectedRepos = workspace.connectedRepos;
+  // Resolve targets BEFORE detail loops so first sync is not a no-op
+  // (OAuth initializes connectedRepos as []).
+  const allRepoNames = repos.map((r) => r.fullName);
+  const targetRepos =
+    workspace.connectedRepos.length > 0
+      ? workspace.connectedRepos
+      : allRepoNames;
+
+  await prisma.workspace.update({
+    where: { id: workspaceId },
+    data: { connectedRepos: allRepoNames },
+  });
+
+  // 2. For each target repo, fetch PRs, issues, commits, releases
   let prCount = 0;
   let issueCount = 0;
   let commitCount = 0;
   let releaseCount = 0;
 
-  for (const repoFullName of connectedRepos) {
+  for (const repoFullName of targetRepos) {
     const [owner, repo] = repoFullName.split("/");
     if (!owner || !repo) continue;
 
@@ -158,13 +171,6 @@ export async function syncWorkspaceRepos(workspaceId: string): Promise<{
     }
   }
 
-  // 4. Update connected repos list
-  const allRepoNames = repos.map((r) => r.fullName);
-  await prisma.workspace.update({
-    where: { id: workspaceId },
-    data: { connectedRepos: allRepoNames },
-  });
-
   const stats = {
     repos: repos.length,
     prs: prCount,
@@ -176,6 +182,15 @@ export async function syncWorkspaceRepos(workspaceId: string): Promise<{
 
   if (isDev) {
     console.log("[memory/sync] Sync complete:", stats);
+  }
+
+  // Push structured entities into Cognee Cloud (no-op if unset)
+  try {
+    await ingestEntities(workspaceId, allEntities);
+  } catch (e) {
+    if (isDev) {
+      console.error("[memory/sync] Cognee ingest failed:", e);
+    }
   }
 
   // Log audit
@@ -251,6 +266,31 @@ export async function syncSingleRepo(
       commitCount,
       releaseCount,
     });
+  }
+
+  try {
+    const entities = await prisma.entity.findMany({
+      where: { workspaceId, repoFullName },
+      take: 200,
+    });
+    await ingestEntities(
+      workspaceId,
+      entities.map((e) => ({
+        entityType: e.entityType,
+        source: e.source,
+        sourceId: e.sourceId,
+        repoFullName: e.repoFullName,
+        title: e.title,
+        body: e.body,
+        state: e.state,
+        url: e.url,
+        author: e.author,
+      })),
+    );
+  } catch (e) {
+    if (isDev) {
+      console.error("[memory/sync] Cognee ingest (single repo) failed:", e);
+    }
   }
 
   return {

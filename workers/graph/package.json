@@ -14,11 +14,14 @@
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
     "eslint": "^9.39.1",
     "tsx": "^4.19.4",
     "typescript": "5.9.2"
   },
   "dependencies": {
+    "@neuron/cognee": "workspace:*",
+    "@neuron/database": "workspace:*",
     "@repo/shared": "workspace:*"
   }
 }

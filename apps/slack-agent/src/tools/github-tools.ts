@@ -13,7 +13,13 @@ import {
   searchIssuesAndPRs,
 } from "@neuron/github";
 import { prisma } from "@neuron/database";
-import { getWorkspaceStats } from "@neuron/memory";
+import {
+  getWorkspaceStats,
+  getEntitiesByRepo,
+  searchEntities,
+  resolveRepoMentions,
+  inferEntityTypeFromQuery,
+} from "@neuron/memory";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -88,6 +94,10 @@ export async function executeTool(
         return await toolListOrgs(ctx);
       case "list_org_repos":
         return await toolListOrgRepos(params, ctx);
+      case "graph_list_by_repo":
+        return await toolGraphListByRepo(params, ctx);
+      case "graph_search":
+        return await toolGraphSearch(params, ctx);
       default:
         return { success: false, error: `Unknown tool: ${toolName}` };
     }
@@ -455,6 +465,132 @@ async function toolListOrgRepos(
     data: {
       text: `*Repos in ${org}:*\n\n${lines.join("\n")}\n\n${repos.length > 20 ? `...and ${repos.length - 20} more` : ""}`,
       repos: repos.map((r) => r.fullName),
+    },
+  };
+}
+
+async function toolGraphListByRepo(
+  params: Record<string, string>,
+  ctx: ToolContext,
+): Promise<ToolResult> {
+  let repo = params.repo?.trim();
+  const entityType =
+    params.entityType ||
+    inferEntityTypeFromQuery(params.query ?? "") ||
+    undefined;
+  const query = params.query ?? "";
+
+  if (!repo && query) {
+    const matches = await resolveRepoMentions(ctx.workspaceId, query);
+    repo = matches[0];
+  }
+
+  if (!repo) {
+    return {
+      success: false,
+      error:
+        "Usage: graph_list_by_repo with repo (owner/repo) or a query mentioning a repo",
+    };
+  }
+
+  // Allow short repo name match
+  if (!repo.includes("/")) {
+    const matches = await resolveRepoMentions(ctx.workspaceId, repo);
+    if (matches[0]) repo = matches[0];
+  }
+
+  const entities = await getEntitiesByRepo(
+    ctx.workspaceId,
+    repo,
+    entityType,
+    40,
+  );
+
+  if (entities.length === 0) {
+    return {
+      success: true,
+      data: {
+        text: `No ${entityType ?? "entities"} found in the knowledge graph for *${repo}*. Run \`/neuron sync\` if you have not synced yet.`,
+      },
+    };
+  }
+
+  const lines = entities.map((e) => {
+    const state = e.state ? ` (${e.state})` : "";
+    const url = e.url ? ` — ${e.url}` : "";
+    return `• [${e.entityType}] ${e.title ?? "untitled"}${state}${url}`;
+  });
+
+  const label = entityType ? `${entityType}s` : "entities";
+  return {
+    success: true,
+    data: {
+      text: `*Graph ${label} for ${repo}:*\n\n${lines.join("\n")}`,
+      entities,
+    },
+  };
+}
+
+async function toolGraphSearch(
+  params: Record<string, string>,
+  ctx: ToolContext,
+): Promise<ToolResult> {
+  const query = params.query?.trim();
+  if (!query) {
+    return { success: false, error: "Usage: graph_search with query" };
+  }
+
+  const entityType = params.entityType || inferEntityTypeFromQuery(query);
+  const repos = await resolveRepoMentions(ctx.workspaceId, query);
+  const repoFullName = params.repo || repos[0];
+
+  const results = await searchEntities(ctx.workspaceId, query, {
+    entityType,
+    repoFullName,
+    limit: 25,
+  });
+
+  // If search on full query is weak, try repo typed list
+  if (results.length === 0 && repoFullName) {
+    const byRepo = await getEntitiesByRepo(
+      ctx.workspaceId,
+      repoFullName,
+      entityType,
+      25,
+    );
+    if (byRepo.length > 0) {
+      const lines = byRepo.map(
+        (e) =>
+          `• [${e.entityType}] ${e.repoFullName}: ${e.title ?? "untitled"}${e.state ? ` (${e.state})` : ""}`,
+      );
+      return {
+        success: true,
+        data: {
+          text: `*Graph results for ${repoFullName}:*\n\n${lines.join("\n")}`,
+        },
+      };
+    }
+  }
+
+  if (results.length === 0) {
+    return {
+      success: true,
+      data: {
+        text: `No graph matches for "${query}". Try \`/neuron sync\` first.`,
+      },
+    };
+  }
+
+  const lines = results.map(
+    (e) =>
+      `• [${e.entityType}] ${e.repoFullName}: ${e.title ?? "untitled"}${e.state ? ` (${e.state})` : ""}`,
+  );
+
+  return {
+    success: true,
+    data: {
+      text: `*Graph search for "${query}":*\n\n${lines.join("\n")}`,
+      results,
     },
   };
 }

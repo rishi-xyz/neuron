@@ -18,8 +18,9 @@ model Workspace {
   githubTokenType    String?
   connectedRepos     String[]
 
-  entities   Entity[]
-  auditLogs  AuditLog[]
+  entities                 Entity[]
+  auditLogs                AuditLog[]
+  conversationReferences   ConversationReference[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -86,4 +87,26 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([workspaceId, createdAt])
+}
+
+/// Lightweight Slack pointer only — never stores raw message content.
+model ConversationReference {
+  id          String @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  channelId  String
+  threadTs   String
+  messageTs  String?
+  permalink  String?
+
+  /// Optional link to a derived knowledge entity sourceId (Decision, ActionItem, etc.)
+  derivedEntitySourceId String  @default("")
+  derivedEntityType     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, channelId, threadTs, derivedEntitySourceId])
+  @@index([workspaceId, channelId])
 }

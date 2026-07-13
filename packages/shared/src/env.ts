@@ -23,6 +23,9 @@ const envSchema = z.object({
   LLM_API_KEY: z.string().default(""),
   LLM_BASE_URL: z.string().default("https://api.openai.com/v1"),
   LLM_MODEL: z.string().default("gpt-4o-mini"),
+
+  COGNEE_API_URL: z.string().default(""),
+  COGNEE_API_KEY: z.string().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

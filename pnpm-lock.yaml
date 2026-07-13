@@ -65,6 +65,9 @@ importers:
 
   apps/slack-agent:
     dependencies:
+      "@neuron/cognee":
+        specifier: workspace:*
+        version: link:../../packages/cognee
       "@neuron/database":
         specifier: workspace:*
         version: link:../../packages/database
@@ -74,6 +77,9 @@ importers:
       "@neuron/memory":
         specifier: workspace:*
         version: link:../../packages/memory
+      "@neuron/slack-rts":
+        specifier: workspace:*
+        version: link:../../packages/slack-rts
       "@repo/shared":
         specifier: workspace:*
         version: link:../../packages/shared
@@ -145,6 +151,24 @@ importers:
       "@types/react-dom":
         specifier: 19.2.2
         version: 19.2.2(@types/react@19.2.2)
+      eslint:
+        specifier: ^9.39.1
+        version: 9.39.1(jiti@2.7.0)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
+  packages/cognee:
+    devDependencies:
+      "@repo/eslint-config":
+        specifier: workspace:*
+        version: link:../eslint-config
+      "@repo/typescript-config":
+        specifier: workspace:*
+        version: link:../typescript-config
+      "@types/node":
+        specifier: ^22.15.3
+        version: 22.15.3
       eslint:
         specifier: ^9.39.1
         version: 9.39.1(jiti@2.7.0)
@@ -243,6 +267,9 @@ importers:
 
   packages/memory:
     dependencies:
+      "@neuron/cognee":
+        specifier: workspace:*
+        version: link:../cognee
       "@neuron/database":
         specifier: workspace:*
         version: link:../database
@@ -285,6 +312,28 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  packages/slack-rts:
+    dependencies:
+      "@slack/web-api":
+        specifier: ^7.18.0
+        version: 7.19.0
+    devDependencies:
+      "@repo/eslint-config":
+        specifier: workspace:*
+        version: link:../eslint-config
+      "@repo/typescript-config":
+        specifier: workspace:*
+        version: link:../typescript-config
+      "@types/node":
+        specifier: ^22.15.3
+        version: 22.15.3
+      eslint:
+        specifier: ^9.39.1
+        version: 9.39.1(jiti@2.7.0)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
   packages/typescript-config: {}
 
   packages/ui:
@@ -320,6 +369,12 @@ importers:
 
   workers/graph:
     dependencies:
+      "@neuron/cognee":
+        specifier: workspace:*
+        version: link:../../packages/cognee
+      "@neuron/database":
+        specifier: workspace:*
+        version: link:../../packages/database
       "@repo/shared":
         specifier: workspace:*
         version: link:../../packages/shared
@@ -330,6 +385,9 @@ importers:
       "@repo/typescript-config":
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      "@types/node":
+        specifier: ^22.15.3
+        version: 22.15.3
       eslint:
         specifier: ^9.39.1
         version: 9.39.1(jiti@2.7.0)
