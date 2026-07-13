@@ -59,6 +59,21 @@ function detectIntent(
     };
   }
 
+  if (
+    lower.includes("list org") ||
+    lower.includes("my org") ||
+    lower.includes("organizations")
+  ) {
+    return { tool: "list_orgs", params: {} };
+  }
+
+  const orgRepoMatch = text.match(
+    /(?:repos|repositories)\s+(?:in|for|at)\s+(\S+)/i,
+  );
+  if (orgRepoMatch?.[1]) {
+    return { tool: "list_org_repos", params: { org: orgRepoMatch[1] } };
+  }
+
   return null;
 }
 

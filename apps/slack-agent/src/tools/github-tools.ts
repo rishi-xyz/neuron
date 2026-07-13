@@ -7,6 +7,8 @@ import {
   createIssue,
   addIssueComment,
   listRepos,
+  listOrgs,
+  listOrgRepos,
   searchCode,
   searchIssuesAndPRs,
 } from "@neuron/github";
@@ -82,6 +84,10 @@ export async function executeTool(
         return await toolSearchIssues(params, ctx);
       case "workspace_stats":
         return await toolWorkspaceStats(ctx);
+      case "list_orgs":
+        return await toolListOrgs(ctx);
+      case "list_org_repos":
+        return await toolListOrgRepos(params, ctx);
       default:
         return { success: false, error: `Unknown tool: ${toolName}` };
     }
@@ -394,4 +400,61 @@ async function toolWorkspaceStats(ctx: ToolContext): Promise<ToolResult> {
   ].join("\n");
 
   return { success: true, data: { text, stats } };
+}
+
+async function toolListOrgs(ctx: ToolContext): Promise<ToolResult> {
+  const octokit = await getOctokit(ctx.workspaceId);
+  const orgs = await listOrgs(octokit);
+
+  if (orgs.length === 0) {
+    return {
+      success: true,
+      data: { text: "No organizations found for your GitHub account." },
+    };
+  }
+
+  const lines = orgs
+    .slice(0, 20)
+    .map((o) => `• *${o.login}* — ${o.description ?? "_no description_"}`);
+
+  return {
+    success: true,
+    data: {
+      text: `*Your Organizations:*\n\n${lines.join("\n")}`,
+      orgs,
+    },
+  };
+}
+
+async function toolListOrgRepos(
+  params: Record<string, string>,
+  ctx: ToolContext,
+): Promise<ToolResult> {
+  const org = params.org;
+  if (!org) {
+    return {
+      success: false,
+      error: "Usage: list_org_repos with org (organization name)",
+    };
+  }
+
+  const octokit = await getOctokit(ctx.workspaceId);
+  const repos = await listOrgRepos(octokit, org);
+
+  const workspace = await prisma.workspace.findUniqueOrThrow({
+    where: { id: ctx.workspaceId },
+  });
+
+  const lines = repos.slice(0, 20).map((r) => {
+    const connected = workspace.connectedRepos.includes(r.fullName);
+    return `${connected ? "●" : "○"} *${r.fullName}* — ${r.description ?? "_no description_"} (${r.language ?? "N/A"}, ⭐ ${r.stars})`;
+  });
+
+  return {
+    success: true,
+    data: {
+      text: `*Repos in ${org}:*\n\n${lines.join("\n")}\n\n${repos.length > 20 ? `...and ${repos.length - 20} more` : ""}`,
+      repos: repos.map((r) => r.fullName),
+    },
+  };
 }

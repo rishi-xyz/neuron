@@ -5,8 +5,14 @@ export {
   getGitHubAuthUrl,
 } from "./client.js";
 
-export type { RepoInfo } from "./repos.js";
-export { listRepos, getRepository, listRepoLanguages } from "./repos.js";
+export type { RepoInfo, OrgInfo } from "./repos.js";
+export {
+  listRepos,
+  getRepository,
+  listRepoLanguages,
+  listOrgs,
+  listOrgRepos,
+} from "./repos.js";
 
 export type { PRInfo } from "./pull-requests.js";
 export {
