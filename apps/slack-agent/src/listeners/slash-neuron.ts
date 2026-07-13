@@ -147,11 +147,24 @@ export async function handleSlashNeuron({
 
     // Handle "repos"
     if (lower === "repos" || lower === "repositories") {
+      let workspace = await prisma.workspace.findUnique({
+        where: { slackWorkspaceId: teamId },
+      });
+
+      if (!workspace) {
+        workspace = await prisma.workspace.create({
+          data: {
+            slackWorkspaceId: teamId,
+            name: `Workspace ${teamId}`,
+          },
+        });
+      }
+
       const result = await executeTool(
         "list_repos",
         {},
         {
-          workspaceId: teamId,
+          workspaceId: workspace.id,
           channel: channelId,
           threadTs: "",
           client,
