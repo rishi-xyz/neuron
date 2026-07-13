@@ -1,7 +1,7 @@
 import type { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
 
 import { prisma } from "@neuron/database";
-import { executeTool } from "../tools/github-tools.js";
+import { executeTool, executeConfirmedAction } from "../tools/github-tools.js";
 import { AGENT_GREETING, LOADING_STATUS } from "../config/prompts.js";
 import { generateResponse } from "../ai/llm.js";
 import { detectIntent } from "../ai/intent.js";
@@ -69,11 +69,65 @@ export async function handleMessage({
       });
 
       if (result.success) {
+        // Handle confirmation workflow
+        if (result.requiresConfirmation && result.confirmationData) {
+          const { action, params, preview } = result.confirmationData;
+
+          const confirmationId = `confirm_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
+          const confirmBlocks = [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: preview,
+              },
+            },
+            {
+              type: "actions",
+              elements: [
+                {
+                  type: "button",
+                  text: {
+                    type: "plain_text",
+                    text: "✅ Confirm",
+                  },
+                  style: "primary",
+                  value: JSON.stringify({ action, params, confirmationId }),
+                  action_id: "confirm_action",
+                },
+                {
+                  type: "button",
+                  text: {
+                    type: "plain_text",
+                    text: "❌ Cancel",
+                  },
+                  style: "danger",
+                  value: JSON.stringify({ confirmationId }),
+                  action_id: "cancel_action",
+                },
+              ],
+            },
+          ];
+
+          await client.chat.postMessage({
+            channel: channelId,
+            thread_ts: threadTs,
+            blocks: confirmBlocks,
+            text: preview,
+          });
+          return;
+        }
+
+        // Normal response with Block Kit support
         const data = result.data as { text: string };
+        const blocks = result.blocks;
+
         await client.chat.postMessage({
           channel: channelId,
           thread_ts: threadTs,
           text: data.text,
+          ...(blocks ? { blocks } : {}),
         });
         return;
       }

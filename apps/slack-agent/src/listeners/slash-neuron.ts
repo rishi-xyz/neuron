@@ -5,7 +5,7 @@ import type {
 import { prisma } from "@neuron/database";
 import { syncWorkspaceRepos } from "@neuron/memory";
 import { getOAuthUrl } from "../auth/github.js";
-import { executeTool } from "../tools/github-tools.js";
+import { executeTool, executeConfirmedAction } from "../tools/github-tools.js";
 import {
   GITHUB_CONNECTED_MESSAGE,
   GITHUB_NOT_CONNECTED_MESSAGE,

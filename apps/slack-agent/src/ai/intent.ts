@@ -128,6 +128,50 @@ export function detectIntent(
     return { tool: "list_org_repos", params: { org: orgRepoMatch[1] } };
   }
 
+  // Thread summarization
+  if (
+    lower.includes("summarize thread") ||
+    lower.includes("summarize this thread") ||
+    lower.includes("thread summary")
+  ) {
+    return { tool: "summarize_thread", params: {} };
+  }
+
+  // Create discussion
+  if (
+    lower.includes("create discussion") ||
+    lower.includes("start discussion") ||
+    lower.includes("new discussion")
+  ) {
+    return { tool: "create_discussion", params: { query: text } };
+  }
+
+  // Link Slack to GitHub
+  if (
+    lower.includes("link slack") &&
+    (lower.includes("github") || lower.includes("issue"))
+  ) {
+    return { tool: "link_slack_to_github", params: { query: text } };
+  }
+
+  // Trace decision lineage
+  if (
+    lower.includes("trace decision") ||
+    lower.includes("decision lineage") ||
+    lower.includes("decision history")
+  ) {
+    return { tool: "trace_decision_lineage", params: { query: text } };
+  }
+
+  // Create canvas
+  if (
+    lower.includes("create canvas") ||
+    lower.includes("new canvas") ||
+    lower.includes("generate canvas")
+  ) {
+    return { tool: "create_canvas", params: { query: text } };
+  }
+
   return null;
 }
 

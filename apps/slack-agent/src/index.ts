@@ -14,6 +14,7 @@ import { handleSlashNeuron } from "./listeners/slash-neuron.js";
 import { handleMessage } from "./listeners/message-im.js";
 import { handleGitHubAuthRedirect } from "./routes/github-oauth.js";
 import { handleGitHubWebhook } from "./webhooks/github.js";
+import { handleConfirmationAction } from "./listeners/confirmation-actions.js";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -36,6 +37,43 @@ app.command("/neuron", handleSlashNeuron);
 
 app.action("feedback", async ({ ack }) => {
   await ack();
+});
+
+app.action("confirm_action", handleConfirmationAction);
+app.action("cancel_action", handleConfirmationAction);
+
+// Handle suggested prompt actions from App Home
+app.action("suggested_workspace_stats", async ({ ack, body, client }) => {
+  await ack();
+  // Trigger workspace stats command
+  await client.chat.postMessage({
+    channel: body.user.id,
+    text: "/neuron stats",
+  });
+});
+
+app.action("suggested_list_repos", async ({ ack, body, client }) => {
+  await ack();
+  await client.chat.postMessage({
+    channel: body.user.id,
+    text: "/neuron repos",
+  });
+});
+
+app.action("suggested_search_issues", async ({ ack, body, client }) => {
+  await ack();
+  await client.chat.postMessage({
+    channel: body.user.id,
+    text: "Search for issues...",
+  });
+});
+
+app.action("suggested_summarize_thread", async ({ ack, body, client }) => {
+  await ack();
+  await client.chat.postMessage({
+    channel: body.user.id,
+    text: "Summarize this thread...",
+  });
 });
 
 // HTTP server for OAuth callbacks and webhooks

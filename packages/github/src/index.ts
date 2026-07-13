@@ -22,12 +22,13 @@ export {
   createPRComment,
 } from "./pull-requests.js";
 
-export type { IssueInfo } from "./issues.js";
+export type { IssueInfo, DiscussionInfo } from "./issues.js";
 export {
   listIssues,
   getIssue,
   createIssue,
   addIssueComment,
+  createDiscussion,
 } from "./issues.js";
 
 export type { CommitInfo } from "./commits.js";

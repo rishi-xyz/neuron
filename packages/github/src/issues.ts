@@ -168,3 +168,70 @@ export async function addIssueComment(
     body,
   });
 }
+
+export interface DiscussionInfo {
+  id: string;
+  number: number;
+  title: string;
+  body: string | null;
+  author: string;
+  url: string;
+  createdAt: string;
+}
+
+export async function createDiscussion(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  title: string,
+  body: string,
+  categoryId?: string,
+): Promise<DiscussionInfo> {
+  if (isDev) {
+    console.log(
+      `[github/issues] Creating discussion in ${owner}/${repo}: ${title}`,
+    );
+  }
+
+  // GitHub GraphQL API required for discussions
+  const query = `
+    mutation CreateDiscussion($repositoryId: ID!, $categoryId: ID, $title: String!, $body: String!) {
+      createDiscussion(input: {repositoryId: $repositoryId, categoryId: $categoryId, title: $title, body: $body}) {
+        discussion {
+          id
+          number
+          title
+          body
+          author {
+            login
+          }
+          url
+          createdAt
+        }
+      }
+    }
+  `;
+
+  // Get repository ID first
+  const repoData = await octokit.rest.repos.get({ owner, repo });
+  const repositoryId = repoData.data.node_id;
+
+  const variables = {
+    repositoryId,
+    categoryId: categoryId || null,
+    title,
+    body,
+  };
+
+  const response = await octokit.graphql<{
+    createDiscussion: { discussion: DiscussionInfo };
+  }>(query, variables);
+
+  if (isDev) {
+    console.log(
+      `[github/issues] Created discussion #${response.createDiscussion.discussion.number}`,
+    );
+  }
+
+  return response.createDiscussion.discussion;
+}

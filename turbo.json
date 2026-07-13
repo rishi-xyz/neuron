@@ -21,7 +21,10 @@
         "LLM_API_KEY",
         "LLM_BASE_URL",
         "LLM_MODEL",
-        "PORT"
+        "PORT",
+        "COGNEE_API_KEY",
+        "COGNEE_API_URL",
+        "GRAPH_REBUILD_WORKSPACE_ID"
       ]
     },
     "lint": {

@@ -5,6 +5,7 @@ import {
   SUGGESTED_PROMPTS,
   WELCOME_MESSAGE,
 } from "../config/prompts.js";
+import { buildSuggestedPromptsBlocks } from "../config/block-kit.js";
 
 type Handler = SlackEventMiddlewareArgs<"app_home_opened"> & AllMiddlewareArgs;
 
@@ -63,15 +64,19 @@ function buildAppHomeView() {
             "\u2022 Tell you who owns what service\n" +
             "\u2022 Summarize PRs, issues, and discussions\n" +
             "\u2022 Retrieve historical decisions\n" +
-            "\u2022 Generate documentation",
+            "\u2022 Generate documentation\n" +
+            "\u2022 Link Slack discussions to GitHub\n" +
+            "\u2022 Trace decision lineage",
         },
       },
+      { type: "divider" as const },
+      ...buildSuggestedPromptsBlocks(),
       {
         type: "context" as const,
         elements: [
           {
             type: "mrkdwn" as const,
-            text: "Powered by a living knowledge graph. Currently in stub mode \u2014 full capabilities coming soon.",
+            text: "Powered by a living knowledge graph.",
           },
         ],
       },

@@ -63,11 +63,68 @@ export async function handleAppMentioned({
       });
 
       if (result.success) {
+        // Handle confirmation workflow
+        if (result.requiresConfirmation && result.confirmationData) {
+          const { action, params, preview } = result.confirmationData;
+
+          // Store confirmation data in a temporary map (in production, use Redis)
+          const confirmationId = `confirm_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
+          // In a real implementation, you'd store this in Redis or a database
+          // For now, we'll use the action metadata to pass through the confirmation
+          const confirmBlocks = [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: preview,
+              },
+            },
+            {
+              type: "actions",
+              elements: [
+                {
+                  type: "button",
+                  text: {
+                    type: "plain_text",
+                    text: "✅ Confirm",
+                  },
+                  style: "primary",
+                  value: JSON.stringify({ action, params, confirmationId }),
+                  action_id: "confirm_action",
+                },
+                {
+                  type: "button",
+                  text: {
+                    type: "plain_text",
+                    text: "❌ Cancel",
+                  },
+                  style: "danger",
+                  value: JSON.stringify({ confirmationId }),
+                  action_id: "cancel_action",
+                },
+              ],
+            },
+          ];
+
+          await client.chat.postMessage({
+            channel: channelId,
+            thread_ts: threadTs,
+            blocks: confirmBlocks,
+            text: preview, // Fallback text
+          });
+          return;
+        }
+
+        // Normal response with Block Kit support
         const data = result.data as { text: string };
+        const blocks = result.blocks;
+
         await client.chat.postMessage({
           channel: channelId,
           thread_ts: threadTs,
           text: data.text,
+          ...(blocks ? { blocks } : {}),
         });
         return;
       }
