@@ -11,6 +11,6 @@ export default [
     plugins: { onlyWarn },
   },
   {
-    ignores: ["dist/**"],
+    ignores: ["**/dist/**"],
   },
 ];
