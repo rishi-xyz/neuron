@@ -5,7 +5,7 @@
 
 export interface BlockKitSection {
   type: "section";
-  text: {
+  text?: {
     type: "mrkdwn" | "plain_text";
     text: string;
   };

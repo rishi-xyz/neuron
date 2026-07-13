@@ -2,8 +2,7 @@ import type { AllMiddlewareArgs, SlackActionMiddlewareArgs } from "@slack/bolt";
 import { executeConfirmedAction } from "../tools/github-tools.js";
 import { prisma } from "@neuron/database";
 
-type ActionHandler = SlackActionMiddlewareArgs<"block_actions"> &
-  AllMiddlewareArgs;
+type ActionHandler = SlackActionMiddlewareArgs & AllMiddlewareArgs;
 
 export async function handleConfirmationAction({
   ack,
@@ -13,8 +12,16 @@ export async function handleConfirmationAction({
 }: ActionHandler): Promise<void> {
   await ack();
 
+  // Cast body to access block_actions-specific properties
+
+  const actionBody = body as typeof body & {
+    actions?: Array<Record<string, unknown>>;
+    container?: { channel_id: string; message_ts: string };
+    team?: { id: string };
+  };
+
   try {
-    const action = body.actions?.[0];
+    const action = actionBody.actions?.[0];
     if (!action || action.type !== "button") {
       logger.error("[confirmation] Invalid action type");
       return;
@@ -25,8 +32,8 @@ export async function handleConfirmationAction({
 
     if (buttonAction.action_id === "cancel_action") {
       await client.chat.update({
-        channel: body.container.channel_id,
-        ts: body.container.message_ts,
+        channel: actionBody.container!.channel_id,
+        ts: actionBody.container!.message_ts,
         text: "❌ Action cancelled",
         blocks: [
           {
@@ -43,11 +50,11 @@ export async function handleConfirmationAction({
 
     if (buttonAction.action_id === "confirm_action") {
       const { action, params, confirmationId } = value;
-      const channel = body.container.channel_id;
-      const threadTs = body.container.message_ts;
+      const channel = actionBody.container!.channel_id;
+      const threadTs = actionBody.container!.message_ts;
 
       // Get workspace from team_id
-      const teamId = body.team?.id;
+      const teamId = actionBody.team?.id;
       if (!teamId) {
         await client.chat.update({
           channel,
@@ -132,8 +139,8 @@ export async function handleConfirmationAction({
   } catch (e) {
     logger.error(`[confirmation] Failed to handle action: ${e}`);
     await client.chat.update({
-      channel: body.container.channel_id,
-      ts: body.container.message_ts,
+      channel: actionBody.container!.channel_id,
+      ts: actionBody.container!.message_ts,
       text: "❌ Something went wrong while processing the action",
       blocks: [
         {

@@ -26,6 +26,7 @@ const envSchema = z.object({
 
   COGNEE_API_URL: z.string().default(""),
   COGNEE_API_KEY: z.string().default(""),
+  COGNEE_DATASET_NAME: z.string().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

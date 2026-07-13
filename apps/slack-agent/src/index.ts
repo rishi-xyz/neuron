@@ -39,8 +39,10 @@ app.action("feedback", async ({ ack }) => {
   await ack();
 });
 
-app.action("confirm_action", handleConfirmationAction);
-app.action("cancel_action", handleConfirmationAction);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+app.action("confirm_action", handleConfirmationAction as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+app.action("cancel_action", handleConfirmationAction as any);
 
 // Handle suggested prompt actions from App Home
 app.action("suggested_workspace_stats", async ({ ack, body, client }) => {

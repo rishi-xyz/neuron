@@ -179,8 +179,8 @@ async function toolListRepos(ctx: ToolContext): Promise<ToolResult> {
 
   const repoData = repos.map((r) => ({
     fullName: r.fullName,
-    description: r.description,
-    language: r.language,
+    description: r.description ?? undefined,
+    language: r.language ?? undefined,
     stars: r.stars,
     connected: workspace.connectedRepos.includes(r.fullName),
   }));
@@ -263,7 +263,7 @@ async function toolGetIssue(
     assignees: issue.assignees,
     labels: issue.labels,
     comments: issue.comments,
-    body: issue.body,
+    body: issue.body ?? undefined,
     url: issue.url,
   });
 
@@ -310,7 +310,7 @@ async function toolSummarizePR(
     additions: pr.additions,
     deletions: pr.deletions,
     changedFiles: pr.changedFiles,
-    body: pr.body,
+    body: pr.body ?? undefined,
     url: pr.url,
     labels: pr.labels,
     reviewers: pr.reviewers,
@@ -390,8 +390,8 @@ async function executeCreateIssue(
   params: Record<string, string>,
   ctx: ToolContext,
 ): Promise<ToolResult> {
-  const repo = params.repo;
-  const title = params.title;
+  const repo = params.repo ?? "";
+  const title = params.title ?? "";
   const body = params.body ?? "";
   const labels = params.labels
     ? params.labels.split(",").map((l) => l.trim())
@@ -458,9 +458,9 @@ async function executeCommentOnPR(
   params: Record<string, string>,
   ctx: ToolContext,
 ): Promise<ToolResult> {
-  const repo = params.repo;
+  const repo = params.repo!;
   const number = parseInt(params.number ?? "0", 10);
-  const body = params.body;
+  const body = params.body!;
 
   const parsed = parseRepoFullName(repo);
   if (!parsed) {
@@ -525,8 +525,8 @@ async function executeCreateDiscussion(
   params: Record<string, string>,
   ctx: ToolContext,
 ): Promise<ToolResult> {
-  const repo = params.repo;
-  const title = params.title;
+  const repo = params.repo!;
+  const title = params.title!;
   const body = params.body ?? "";
   const categoryId = params.categoryId;
 
@@ -1083,7 +1083,7 @@ async function toolCreateCanvas(
     ].join("\n");
 
     // Create a formatted response that could be copied to Canvas
-    const blocks = [
+    const blocks: BlockKitBlock[] = [
       {
         type: "section",
         text: {

@@ -4,6 +4,8 @@ const isDev = process.env.NODE_ENV !== "production";
 const COGNEE_TIMEOUT_MS = 60_000;
 
 export function datasetNameForWorkspace(workspaceId: string): string {
+  const custom = process.env.COGNEE_DATASET_NAME?.trim();
+  if (custom) return custom;
   return `neuron_${workspaceId.replace(/[^a-zA-Z0-9_]/g, "_")}`;
 }
 
