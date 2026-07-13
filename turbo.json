@@ -6,15 +6,54 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "dist/**"],
-      "env": ["NODE_ENV", "SLACK_BOT_TOKEN", "SLACK_APP_TOKEN"]
+      "env": [
+        "NODE_ENV",
+        "SLACK_BOT_TOKEN",
+        "SLACK_APP_TOKEN",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GITHUB_WEBHOOK_SECRET",
+        "GITHUB_REDIRECT_URL",
+        "GITHUB_APP_ID",
+        "GITHUB_PRIVATE_KEY",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "LLM_API_KEY"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"],
-      "env": ["NODE_ENV", "SLACK_BOT_TOKEN", "SLACK_APP_TOKEN"]
+      "env": [
+        "NODE_ENV",
+        "SLACK_BOT_TOKEN",
+        "SLACK_APP_TOKEN",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GITHUB_WEBHOOK_SECRET",
+        "GITHUB_REDIRECT_URL",
+        "GITHUB_APP_ID",
+        "GITHUB_PRIVATE_KEY",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "LLM_API_KEY"
+      ]
     },
     "check-types": {
       "dependsOn": ["^check-types"],
-      "env": ["NODE_ENV", "SLACK_BOT_TOKEN", "SLACK_APP_TOKEN"]
+      "env": [
+        "NODE_ENV",
+        "SLACK_BOT_TOKEN",
+        "SLACK_APP_TOKEN",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GITHUB_WEBHOOK_SECRET",
+        "GITHUB_REDIRECT_URL",
+        "GITHUB_APP_ID",
+        "GITHUB_PRIVATE_KEY",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "LLM_API_KEY"
+      ]
     },
     "dev": {
       "cache": false,
