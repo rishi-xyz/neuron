@@ -27,6 +27,9 @@ out/
 build
 dist
 
+# Workers
+workers/*/dist
+
 
 # Debug
 npm-debug.log*
