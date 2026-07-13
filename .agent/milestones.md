@@ -31,7 +31,7 @@ Every milestone should end with:
 | ---------------------------- | ------ |
 | M0 - Planning                | ✅     |
 | M1 - Project Setup           | ✅     |
-| M2 - Slack Agent             | ⬜     |
+| M2 - Slack Agent             | ✅     |
 | M3 - Authentication          | ⬜     |
 | M4 - GitHub Integration      | ⬜     |
 | M5 - Google Docs Integration | ⬜     |

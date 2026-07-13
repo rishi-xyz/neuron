@@ -1,0 +1,76 @@
+{
+  "display_information": {
+    "name": "Neuron",
+    "description": "The Engineering Memory Graph for Slack",
+    "background_color": "#1a1a2e"
+  },
+  "features": {
+    "agent_view": {
+      "agent_description": "Neuron is your engineering memory platform. Ask me about architecture, ownership, decisions, or any engineering knowledge.",
+      "suggested_prompts": [
+        {
+          "title": "Explain architecture",
+          "message": "Explain our system architecture"
+        },
+        {
+          "title": "Who owns this?",
+          "message": "Who owns the authentication service?"
+        },
+        {
+          "title": "Summarize a PR",
+          "message": "Summarize pull request #42"
+        }
+      ]
+    },
+    "app_home": {
+      "home_tab_enabled": true,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "display_name": "Neuron",
+      "always_online": true
+    },
+    "slash_commands": [
+      {
+        "command": "/neuron",
+        "description": "Ask Neuron anything about your engineering knowledge",
+        "usage_hint": "your question here"
+      }
+    ]
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "assistant:write",
+        "channels:history",
+        "chat:write",
+        "commands",
+        "groups:history",
+        "im:history",
+        "im:read",
+        "im:write",
+        "reactions:read",
+        "reactions:write",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": [
+        "app_home_opened",
+        "app_context_changed",
+        "app_mention",
+        "message.im"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": true
+    },
+    "org_deploy_enabled": true,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false
+  }
+}
